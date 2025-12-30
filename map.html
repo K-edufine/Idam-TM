@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>동탄 1·2신도시 시세 양극화 시각화</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        #map { height: 550px; width: 100%; border-radius: 12px; }
+        .custom-label {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .marker-pin {
+            width: 14px;
+            height: 14px;
+            border-radius: 50% 50% 50% 0;
+            position: absolute;
+            transform: rotate(-45deg);
+            left: 50%;
+            top: 50%;
+            margin: -7px 0 0 -7px;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 p-4 md:p-8">
+    <div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+        <!-- Header -->
+        <div class="bg-slate-800 p-6 text-white text-center">
+            <h1 class="text-2xl font-bold mb-2">동탄 1·2신도시 주요 단지 시세조사 현황</h1>
+            <p class="text-slate-300 text-sm">공간적 양극화 및 상승률 분포 시각화 (구역별 색상 구분)</p>
+        </div>
+
+        <!-- Legend -->
+        <div class="p-4 bg-white border-b flex flex-wrap justify-center gap-4 text-sm font-medium">
+            <div class="flex items-center gap-2">
+                <span class="w-4 h-4 rounded-full bg-lime-500 border border-white shadow-sm"></span>
+                <span>Leading (9.0%↑)</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-4 h-4 rounded-full bg-sky-400 border border-white shadow-sm"></span>
+                <span>Steady (5~6.5%)</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-4 h-4 rounded-full bg-gray-400 border border-white shadow-sm"></span>
+                <span>Stable (2.5%)</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-4 h-4 rounded-full bg-rose-500 border border-white shadow-sm"></span>
+                <span>Correction (-0.6%)</span>
+            </div>
+        </div>
+
+        <!-- Map Container -->
+        <div class="p-4 relative">
+            <div id="map" class="z-0 border border-slate-200"></div>
+            
+            <!-- Overlay Info -->
+            <div class="absolute top-8 left-8 z-[1000] bg-white/95 p-3 rounded-lg border shadow-lg text-xs pointer-events-none">
+                <div class="font-bold text-slate-800 mb-1 border-b pb-1">구역 범례</div>
+                <div class="flex items-center gap-2 text-blue-600 font-semibold">
+                    <span class="w-3 h-3 bg-blue-100 border border-blue-400 inline-block"></span> 동탄 1신도시
+                </div>
+                <div class="flex items-center gap-2 text-emerald-600 font-semibold">
+                    <span class="w-3 h-3 bg-emerald-100 border border-emerald-400 inline-block"></span> 동탄 2신도시
+                </div>
+            </div>
+        </div>
+
+        <!-- Analysis Box -->
+        <div class="p-6 bg-slate-50 border-b">
+            <h3 class="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-500"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                시사점 및 분석
+            </h3>
+            <div class="grid md:grid-cols-2 gap-4 text-sm text-slate-600 leading-relaxed">
+                <div class="bg-white p-4 rounded-lg border shadow-sm">
+                    <p><strong>📍 구역별 특징:</strong> 푸른색 영역(1신도시)은 성숙한 인프라를 바탕으로 안정적인 시세를, 초록색 영역(2신도시)은 동탄역 중심의 급격한 성장을 보여줍니다.</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg border shadow-sm">
+                    <p><strong>📊 시각화 안내:</strong> 배경의 연한 색상은 신도시 구역 경계를 의미하며, 마커의 진한 색상은 단지별 상승률 등급을 나타냅니다.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Useful Links Section -->
+        <div class="p-6 bg-white">
+            <h3 class="font-bold text-slate-800 mb-3 text-sm">🔗 추가 정보 및 실시간 시세 확인</h3>
+            <div class="flex flex-wrap gap-3">
+                <a href="https://land.naver.com/" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full border border-green-200 hover:bg-green-100 transition-colors text-xs font-medium">
+                    <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                    네이버 부동산 실매물 확인
+                </a>
+                <a href="https://hogangnono.com/" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-full border border-blue-200 hover:bg-blue-100 transition-colors text-xs font-medium">
+                    <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                    호갱노노 가격 추이 분석
+                </a>
+                <a href="https://asil.kr/asil/index.jsp" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 rounded-full border border-purple-200 hover:bg-purple-100 transition-colors text-xs font-medium">
+                    <span class="w-2 h-2 bg-purple-500 rounded-full"></span>
+                    아실(ASIL) 순위 및 통계
+                </a>
+                <a href="https://www.molit.go.kr" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-full border border-slate-300 hover:bg-slate-200 transition-colors text-xs font-medium">
+                    <span class="w-2 h-2 bg-slate-500 rounded-full"></span>
+                    국토교통부 실거래가 공개시스템
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const apartmentData = [
+            { name: "동탄역 롯데캐슬", rate: "9.0%", color: "#84cc16", lat: 37.1996, lng: 127.0963, category: "Leading" },
+            { name: "시범 더샵 센트럴시티", rate: "9.0%", color: "#84cc16", lat: 37.1990, lng: 127.0990, category: "Leading" },
+            { name: "시범다은 월드메르디앙", rate: "6.56%", color: "#38bdf8", lat: 37.2045, lng: 127.0705, category: "Steady" },
+            { name: "호수공원 센트럴시티", rate: "5.35%", color: "#38bdf8", lat: 37.1678, lng: 127.1065, category: "Steady" },
+            { name: "힐스테이트 동탄", rate: "2.53%", color: "#94a3b8", lat: 37.1905, lng: 127.1120, category: "Stable" },
+            { name: "서동탄역 파크자이", rate: "-0.67%", color: "#f43f5e", lat: 37.1995, lng: 127.0545, category: "Correction" }
+        ];
+
+        const map = L.map('map').setView([37.1900, 127.0850], 13);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        const dongtan1Boundary = [
+            [37.225, 127.040], [37.225, 127.078], [37.180, 127.078], [37.180, 127.040]
+        ];
+        L.polygon(dongtan1Boundary, {
+            color: '#3b82f6', weight: 2, fillColor: '#3b82f6', fillOpacity: 0.12, dashArray: '4'
+        }).addTo(map).bindTooltip("동탄 1신도시 구역", {sticky: true, opacity: 0.8});
+
+        const dongtan2Boundary = [
+            [37.230, 127.082], [37.230, 127.145], [37.150, 127.145], [37.150, 127.082]
+        ];
+        L.polygon(dongtan2Boundary, {
+            color: '#10b981', weight: 2, fillColor: '#10b981', fillOpacity: 0.12, dashArray: '4'
+        }).addTo(map).bindTooltip("동탄 2신도시 구역", {sticky: true, opacity: 0.8});
+
+        apartmentData.forEach(apt => {
+            const customIcon = L.divIcon({
+                className: 'custom-div-icon',
+                html: `
+                    <div style="position: relative;">
+                        <div class="marker-pin" style="background: ${apt.color};"></div>
+                        <div class="custom-label" style="position: absolute; top: 18px; left: 50%; transform: translateX(-50%); border-left: 3px solid ${apt.color}">
+                            <div class="text-[10px] text-slate-500 leading-tight">${apt.name}</div>
+                            <div class="text-[12px] text-slate-800">${apt.rate}</div>
+                        </div>
+                    </div>
+                `,
+                iconSize: [30, 42],
+                iconAnchor: [15, 15]
+            });
+
+            L.marker([apt.lat, apt.lng], { icon: customIcon }).addTo(map)
+             .bindPopup(`<b>${apt.name}</b><br>카테고리: ${apt.category}<br>상승률: ${apt.rate}`);
+        });
+
+        const group = new L.featureGroup(apartmentData.map(d => L.marker([d.lat, d.lng])));
+        map.fitBounds(group.getBounds().pad(0.2));
+    </script>
+</body>
+</html>
